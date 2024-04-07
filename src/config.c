@@ -149,108 +149,6 @@ static void ParseKeyArray(char *value, int cmd, int size) {
   }
 }
 
-typedef struct GamepadMapEnt {
-  uint32 modifiers;
-  uint16 cmd, next;
-} GamepadMapEnt;
-
-static uint16 joymap_first[kGamepadBtn_Count];
-static GamepadMapEnt *joymap_ents;
-static int joymap_size;
-static bool has_joypad_controls;
-
-static int CountBits32(uint32 n) {
-  int count = 0;
-  for (; n != 0; count++)
-    n &= (n - 1);
-  return count;
-}
-
-static void GamepadMap_Add(int button, uint32 modifiers, uint16 cmd) {
-  if ((joymap_size & 0xff) == 0) {
-    if (joymap_size > 1000)
-      Die("Too many joypad keys");
-    joymap_ents = (GamepadMapEnt*)realloc(joymap_ents, sizeof(GamepadMapEnt) * (joymap_size + 64));
-    if (!joymap_ents) Die("realloc failure");
-  }
-  uint16 *p = &joymap_first[button];
-  // Insert it as early as possible but before after any entry with more modifiers.
-  int cb = CountBits32(modifiers);
-  while (*p && cb < CountBits32(joymap_ents[*p - 1].modifiers))
-    p = &joymap_ents[*p - 1].next;
-  int i = joymap_size++;
-  GamepadMapEnt *ent = &joymap_ents[i];
-  ent->modifiers = modifiers;
-  ent->cmd = cmd;
-  ent->next = *p;
-  *p = i + 1;
-}
-
-int FindCmdForGamepadButton(int button, uint32 modifiers) {
-  GamepadMapEnt *ent;
-  for(int e = joymap_first[button]; e != 0; e = ent->next) {
-    ent = &joymap_ents[e - 1];
-    if ((modifiers & ent->modifiers) == ent->modifiers)
-      return ent->cmd;
-  }
-  return 0;
-}
-
-static int ParseGamepadButtonName(const char **value) {
-  const char *s = *value;
-  // Longest substring first
-  static const char *const kGamepadKeyNames[] = {
-    "Back", "Guide", "Start", "L3", "R3",
-    "L1", "R1", "DpadUp", "DpadDown", "DpadLeft", "DpadRight", "L2", "R2",
-    "Lb", "Rb", "A", "B", "X", "Y"
-  };
-  static const uint8 kGamepadKeyIds[] = {
-    kGamepadBtn_Back, kGamepadBtn_Guide, kGamepadBtn_Start, kGamepadBtn_L3, kGamepadBtn_R3,
-    kGamepadBtn_L1, kGamepadBtn_R1, kGamepadBtn_DpadUp, kGamepadBtn_DpadDown, kGamepadBtn_DpadLeft, kGamepadBtn_DpadRight, kGamepadBtn_L2, kGamepadBtn_R2,
-    kGamepadBtn_L1, kGamepadBtn_R1, kGamepadBtn_A, kGamepadBtn_B, kGamepadBtn_X, kGamepadBtn_Y,
-  };
-  for (size_t i = 0; i != countof(kGamepadKeyNames); i++) {
-    const char *r = StringStartsWithNoCase(s, kGamepadKeyNames[i]);
-    if (r) {
-      *value = r;
-      return kGamepadKeyIds[i];
-    }
-  }
-  return kGamepadBtn_Invalid;
-}
-
-static const uint8 kDefaultGamepadCmds[] = {
-  kGamepadBtn_DpadUp, kGamepadBtn_DpadDown, kGamepadBtn_DpadLeft, kGamepadBtn_DpadRight, kGamepadBtn_Back, kGamepadBtn_Start,
-  kGamepadBtn_B, kGamepadBtn_A, kGamepadBtn_Y, kGamepadBtn_X, kGamepadBtn_L1, kGamepadBtn_R1,
-};
-
-static void ParseGamepadArray(char *value, int cmd, int size) {
-  char *s;
-  int i = 0;
-  for (; i < size && (s = NextDelim(&value, ',')) != NULL; i++, cmd += (cmd != 0)) {
-    if (*s == 0)
-      continue;
-    uint32 modifiers = 0;
-    const char *ss = s;
-    for (;;) {
-      int button = ParseGamepadButtonName(&ss);
-      if (button == kGamepadBtn_Invalid) BAD: {
-        fprintf(stderr, "Unknown gamepad button: '%s'\n", s);
-        break;
-      }
-      while (*ss == ' ' || *ss == '\t') ss++;
-      if (*ss == '+') {
-        ss++;
-        modifiers |= 1 << button;
-      } else if (*ss == 0) {
-        GamepadMap_Add(button, modifiers, cmd);
-        break;
-      } else
-        goto BAD;
-    }
-  }
-}
-
 static void RegisterDefaultKeys(void) {
   for (int i = 1; i < countof(kKeyNameId); i++) {
     if (!has_keynameid[i]) {
@@ -259,10 +157,7 @@ static void RegisterDefaultKeys(void) {
         KeyMapHash_Add(kDefaultKbdControls[k], k);
     }
   }
-  if (!has_joypad_controls) {
-    for (int i = 0; i < countof(kDefaultGamepadCmds); i++)
-      GamepadMap_Add(kDefaultGamepadCmds[i], 0, kKeys_Controls + i);
-  }
+
 }
 
 static int GetIniSection(const char *s) {
@@ -276,8 +171,6 @@ static int GetIniSection(const char *s) {
     return 3;
   if (StringEqualsNoCase(s, "[Features]"))
     return 4;
-  if (StringEqualsNoCase(s, "[GamepadMap]"))
-    return 5;
   return -1;
 }
 
@@ -317,15 +210,6 @@ static bool HandleIniConfig(int section, const char *key, char *value) {
       if (StringEqualsNoCase(key, kKeyNameId[i].name)) {
         has_keynameid[i] = true;
         ParseKeyArray(value, kKeyNameId[i].id, kKeyNameId[i].size);
-        return true;
-      }
-    }
-  } else if (section == 5) {
-    for (int i = 0; i < countof(kKeyNameId); i++) {
-      if (StringEqualsNoCase(key, kKeyNameId[i].name)) {
-        if (i == 1)
-          has_joypad_controls = true;
-        ParseGamepadArray(value, kKeyNameId[i].id, kKeyNameId[i].size);
         return true;
       }
     }
@@ -372,37 +256,6 @@ static bool HandleIniConfig(int section, const char *key, char *value) {
       g_config.shader = *value ? value : NULL;
       return true;
     }
-  } else if (section == 2) {
-    if (StringEqualsNoCase(key, "EnableAudio")) {
-      return ParseBool(value, &g_config.enable_audio);
-    } else if (StringEqualsNoCase(key, "AudioFreq")) {
-      g_config.audio_freq = (uint16)strtol(value, (char**)NULL, 10);
-      return true;
-    } else if (StringEqualsNoCase(key, "AudioChannels")) {
-      g_config.audio_channels = (uint8)strtol(value, (char**)NULL, 10);
-      return true;
-    } else if (StringEqualsNoCase(key, "AudioSamples")) {
-      g_config.audio_samples = (uint16)strtol(value, (char**)NULL, 10);
-      return true;
-    } else if (StringEqualsNoCase(key, "EnableMSU")) {
-        if (StringEqualsNoCase(value, "opuz"))
-        g_config.enable_msu = kMsuEnabled_Opuz;
-      else if (StringEqualsNoCase(value, "deluxe"))
-        g_config.enable_msu = kMsuEnabled_MsuDeluxe;
-      else if (StringEqualsNoCase(value, "deluxe-opuz"))
-        g_config.enable_msu = kMsuEnabled_MsuDeluxe | kMsuEnabled_Opuz;
-      else 
-        return ParseBool(value, (bool*)&g_config.enable_msu);
-      return true;
-    } else if (StringEqualsNoCase(key, "MSUPath")) {
-      g_config.msu_path = value;
-      return true;
-    } else if (StringEqualsNoCase(key, "MSUVolume")) {
-      g_config.msuvolume = atoi(value);
-      return true;
-    } else if (StringEqualsNoCase(key, "ResumeMSU")) {
-      return ParseBool(value, &g_config.resume_msu);
-    }
   } else if (section == 3) {
     if (StringEqualsNoCase(key, "Autosave")) {
       g_config.autosave = (bool)strtol(value, (char **)NULL, 10);
@@ -414,7 +267,6 @@ static bool HandleIniConfig(int section, const char *key, char *value) {
     } else if (StringEqualsNoCase(key, "DisableFrameDelay")) {
       return ParseBool(value, &g_config.disable_frame_delay);
     }
-  } else if (section == 4) {
   }
   return false;
 }

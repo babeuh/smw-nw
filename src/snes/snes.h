@@ -11,7 +11,6 @@
 typedef struct Snes Snes;
 
 #include "cpu.h"
-#include "apu.h"
 #include "dma.h"
 #include "ppu.h"
 #include "cart.h"
@@ -20,7 +19,6 @@ typedef struct Snes Snes;
 
 struct Snes {
   Cpu* cpu;
-  Apu* apu;
   Ppu* ppu;
   Dma* dma;
   Cart* cart;
@@ -28,8 +26,6 @@ struct Snes {
   Input *input2;
   // input
   bool debug_cycles;
-  bool debug_apu_cycles;
-  bool disableRender;
   uint8_t runningWhichVersion;
 
   // ram
@@ -45,7 +41,6 @@ struct Snes {
   uint8_t cpuCyclesLeft;
   uint8_t cpuMemOps;
   uint8_t padpad[2];
-  double apuCatchupCycles;
   // nmi / irq
   bool hIrqEnabled;
   bool vIrqEnabled;
@@ -81,19 +76,14 @@ uint8_t snes_read(Snes* snes, uint32_t adr);
 void snes_write(Snes* snes, uint32_t adr, uint8_t val);
 uint8_t snes_cpuRead(Snes* snes, uint32_t adr);
 void snes_cpuWrite(Snes* snes, uint32_t adr, uint8_t val);
-// debugging
-void snes_debugCycle(Snes* snes, bool* cpuNext, bool* spcNext);
 
 void snes_handle_pos_stuff(Snes *snes);
 
 // snes_other.c functions:
 
 bool snes_loadRom(Snes* snes, const uint8_t* data, int length);
-void snes_setPixels(Snes* snes, uint8_t* pixelData);
 void snes_setSamples(Snes* snes, int16_t* sampleData, int samplesPerFrame);
 void snes_saveload(Snes *snes, SaveLoadInfo *sli);
-uint8_t snes_readBBusOrg(Snes *snes, uint8_t adr);
-void snes_catchupApu(Snes *snes);
 
 void snes_runCycle(Snes *snes);
 void snes_runCpu(Snes *snes);

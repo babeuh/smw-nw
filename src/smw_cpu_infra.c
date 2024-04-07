@@ -116,15 +116,9 @@ uint32 PatchBugs_SMW1(void) {
   } else if (FixBugHook(0x3A0A7)) {  // Spr0A8_Blargg OOB
     g_ram[3] = (spr_table1602[g_cpu->x] != 0) * 5;
   } else if (FixBugHook(0x811D)) {
-    if (g_use_my_apu_code)
-      return 0x8125;
-    RtlSetUploadingApu(true);
+    return 0x8125;
   } else if (FixBugHook(0x80F7)) {
-    if (g_use_my_apu_code)
-      return 0x80fc;
-    RtlSetUploadingApu(true);
-  } else if (FixBugHook(0x80FB)) {
-    RtlSetUploadingApu(false);
+    return 0x80fc;
   } else if (FixBugHook(0xE3FB)) {
     g_ram[12] = g_ram[13] = 0; // R13 not initialized
   } else if (FixBugHook(0x1FD50)) {
@@ -140,7 +134,6 @@ uint32 PatchBugs_SMW1(void) {
     if (g_cpu->y >= 84)
       g_cpu->y = 0;
   } else if (FixBugHook(0x817e)) {
-    g_cpu->y = g_ram[kSmwRam_APUI02];
     return 0x8181;
   }
   return 0;
@@ -152,20 +145,6 @@ void SmwCpuInitialize(void) {
     *SnesRomPtr(0x2DDA2) = 5;
     *SnesRomPtr(0xCA5AC) = 7;
   }
-}
-
-static void SmwFixSnapshotForCompare(Snapshot *b, Snapshot *a) {
-  memcpy(&b->ram[0x0], &a->ram[0x0], 16); // temps
-  memcpy(&b->ram[0x10b], &a->ram[0x10b], 0x100 - 0xb);  // stack
-
-  memcpy(&b->ram[0x17bb], &a->ram[0x17bb], 1); // unusedram_7e17bb
-
-  memcpy(&b->ram[0x65], &a->ram[0x65], 12);  // temp66, etc
-  memcpy(&b->ram[0x8a], &a->ram[0x8a], 6);  // temp8a, etc
-
-  memcpy(&b->ram[0x14B0], &a->ram[0x14B0], 0x11);  // temp14b0 etc
-
-  memcpy(&b->ram[0x1436], &a->ram[0x1436], 4);  // temp14b0 etc
 }
 
 static uint32 RunCpuUntilPC(uint32 pc1, uint32 pc2) {
@@ -182,41 +161,6 @@ static uint32 RunCpuUntilPC(uint32 pc1, uint32 pc2) {
   }
 }
 
-void SmwRunOneFrameOfGame_Emulated(void) {
-  Snes *snes = g_snes;
-  snes->vPos = snes->hPos = 0;
-  snes->cpu->nmiWanted = snes->cpu->irqWanted = false;
-  snes->inVblank = snes->inNmi = false;
-
-  // Execute until: mov.b   A, waiting_for_vblank
-  RunCpuUntilPC(0x8077, 0x8077);
-
-  g_snes->debug_cycles = 0; // turn off debuig prints if enabled
-
-  // Trigger nmi
-  snes->cpu->nmiWanted = true;
-  RunCpuUntilPC(0x82C3, 0x83B9);
-  snes_runCpu(snes);
-
-  // Right after NMI completes, draw the frame, possibly triggering IRQ.
-  assert(!snes->cpu->i);
-
-/*
-  snes->vPos = snes->hPos = 0;
-  snes->cpu->nmiWanted = snes->cpu->irqWanted = false;
-  snes->inVblank = snes->inNmi = false;
-
-  while (!snes->inNmi) {
-    snes_handle_pos_stuff(snes);
-
-    if (snes->cpu->irqWanted) {
-      RunCpuUntilPC(0x82C3, 0x83B9);
-      snes_runCpu(snes);
-    }
-  }
-  */
-}
-
 
 const RtlGameInfo kSmwGameInfo = {
   "smw",
@@ -225,7 +169,5 @@ const RtlGameInfo kSmwGameInfo = {
   &PatchBugs_SMW1,
   &SmwCpuInitialize,
   &SmwRunOneFrameOfGame,
-  &SmwRunOneFrameOfGame_Emulated,
   &SmwDrawPpuFrame,
-  &SmwFixSnapshotForCompare,
 };

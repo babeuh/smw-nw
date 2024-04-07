@@ -47,14 +47,8 @@ void SetSprXYPos(uint8 k, uint16 x, uint16 y) {
   SetHiLo(&spr_ypos_hi[k], &spr_ypos_lo[k], y);
 }
 
-void SmwSavePlaythroughSnapshot() {
-  char buf[128];
-  snprintf(buf, sizeof(buf), "playthrough/%d_%d_%d.sav", ow_level_number_lo, misc_exit_level_action, (int)time(NULL));
-  RtlSaveSnapshot(buf, false);
-}
-
 void UploadOAMBuffer() {  // 008449
-  memcpy(g_ppu->oam, g_ram + 0x200, 0x220);
+  memcpy(g_my_ppu->oam, g_ram + 0x200, 0x220);
   RtlPpuWrite(OAMADDH, 0x80);
   RtlPpuWrite(OAMADDL, mirror_oamaddress_lo);
 }
@@ -74,7 +68,7 @@ void SmwDrawPpuFrame(void) {
   int trigger = g_snes->vIrqEnabled ? g_snes->vTimer + 1 : -1;
 
   for (int i = 0; i <= 224; i++) {
-    ppu_runLine(g_ppu, i);
+    ppu_runLine(g_my_ppu, i);
     SimpleHdma_DoLine(&hdma_chans[0]);
     SimpleHdma_DoLine(&hdma_chans[1]);
     SimpleHdma_DoLine(&hdma_chans[2]);

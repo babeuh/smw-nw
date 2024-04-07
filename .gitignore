@@ -6,7 +6,7 @@
 *.o
 /smw
 /build/
-/smw.sfc
+smw.sfc
 SDL2.dll
 /smw.exe
 /glsl-shaders/
@@ -14,3 +14,4 @@ SDL2.dll
 /work
 smw_assets.dat
 __pycache__
+.vscode

@@ -1002,6 +1002,8 @@ void BufferScrollingTiles_Layer2_Background() {  // 058d7a
 void DisplayMessage() {  // 05b10c
   int16 v7;
 
+  if (misc_intro_level_flag) DisplayMessage_ExitToOverworldNoEvent(); // MOD
+
   if (timer_wait_before_message_window_size_change == kDisplayMessage_DATA_05B108[flag_message_window_size_change_direction]) {
     if (flag_message_window_size_change_direction) {
       misc_display_message = 0;
@@ -1166,7 +1168,7 @@ uint8 UnusedOverworldEventPassedCheck(uint8 j) {  // 05b363
   return kBitTable_Bank05[j & 7] & ow_event_flags[j >> 3];
 }
 
-static const kLevelTileAnimationsAddrs[] = {
+static const uint16 kLevelTileAnimationsAddrs[] = {
   0x600, 0x640, 0x680,
   0x740, 0xEA0, 0x800,
   0x500, 0x540, 0x580,

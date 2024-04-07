@@ -152,11 +152,11 @@ def print_all(args):
 
   add_asset_uint8('kOverworldLayer2EventTilemap_Tiles', util.get_bytes(0xc8000, 3328))
 
-  add_asset_uint8('kSpcCreditsMusicBank', util.get_bytes(0x3e400, 6624))
-  add_asset_uint8('kSpcLevelMusicBank', util.get_bytes(0xEAED6, 16899))
-  add_asset_uint8('kSpcEngine', util.get_bytes(0xe8000, 6321) + b'\x00\x00')
-  add_asset_uint8('kSpcSamples', util.get_bytes(0xf8000, 28538))
-  add_asset_uint8('kSpcOverworldMusicBank', util.get_bytes(0xe98b1, 5667))
+  add_asset_uint8('kSpcCreditsMusicBank', [])
+  add_asset_uint8('kSpcLevelMusicBank', [])
+  add_asset_uint8('kSpcEngine', [])
+  add_asset_uint8('kSpcSamples', [])
+  add_asset_uint8('kSpcOverworldMusicBank', [])
 
   add_asset_uint16('kMap16Data_OverworldLayer1', util.get_words(0x05d000, 772))
 

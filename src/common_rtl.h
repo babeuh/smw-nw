@@ -13,8 +13,6 @@ enum {
 enum {
   // Version was bumped to 1 after I fixed bug #1
   kCurrentBugFixCounter = 1,
-
-  kSmwRam_APUI02 = 0x18c5,
 };
 
 typedef struct SimpleHdma {
@@ -39,18 +37,14 @@ extern uint8 g_ram[0x20000];
 extern uint8 *g_sram;
 extern int g_sram_size;
 extern const uint8 *g_rom;
-extern Ppu *g_ppu, *g_my_ppu;
+extern Ppu *g_my_ppu;
 extern Dma *g_dma;
 
 #define GET_BYTE(p) (*(uint8*)(p))
 
 extern int snes_frame_counter;
-extern bool g_use_my_apu_code;
 extern bool g_debug_flag;
 extern uint8 game_id;
-
-typedef struct SpcPlayer SpcPlayer;
-extern SpcPlayer *g_spc_player;
 
 void mov24(LongPtr *dst, uint32 src);
 uint32 Load24(LongPtr src);
@@ -116,25 +110,15 @@ enum {
   kSaveLoad_Replay = 3,
 };
 
-void RtlSaveLoad(int cmd, int slot);
 void RtlCheat(char c);
-void RtlApuLock();
-void RtlApuUnlock();
-void RtlApuReset();
-void RtlSetUploadingApu(bool uploading);
-void RtlApuUpload(const uint8 *p);
-void RtlRenderAudio(int16 *audio_buffer, int samples, int channels);
-void RtlPushApuState();
 bool RtlRunFrame(int inputs);
 void RtlReadSram();
 void RtlWriteSram();
-void RtlSaveSnapshot(const char *filename, bool saving_with_bug);
 
 void RtlUpdatePalette(const uint16 *src, int dst, int n);
 uint16 *RtlGetVramAddr();
 void RtlPpuWrite(uint16 addr, uint8 value);
 void RtlPpuWriteTwice(uint16 addr, uint16 value);
-void RtlApuWrite(uint16 adr, uint8 val);
 void RtlEnableVirq(int line);
 
 

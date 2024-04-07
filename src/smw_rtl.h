@@ -9,7 +9,6 @@ void SmwVectorReset();
 void SmwRunOneFrameOfGame_Internal();
 void SmwVectorNMI();
 void SmwVectorIRQ();
-void SmwSavePlaythroughSnapshot();
 
 void SmwCopyToVram(uint16 vram_addr, const uint8 *src, int n);
 void SmwClearVram(uint16 vram_addr, uint16 value, int n);

@@ -4,7 +4,6 @@
 
 typedef struct Snes Snes;
 typedef struct Cpu Cpu;
-typedef struct Snapshot Snapshot;
 
 extern Snes *g_snes;
 extern Cpu *g_cpu;
@@ -19,7 +18,6 @@ uint8_t *SnesRomPtr(uint32 v);
 typedef uint32 PatchBugsFunc(void);
 typedef void CpuInfraInitializeFunc(void);
 typedef void RunOneFrameOfGameFunc(void);
-typedef void FixSnapshotForCompareFunc(Snapshot *b, Snapshot *a);
 
 typedef struct RtlGameInfo {
   const char *title;
@@ -29,24 +27,8 @@ typedef struct RtlGameInfo {
   PatchBugsFunc *patch_bugs;
   CpuInfraInitializeFunc *initialize;
   RunOneFrameOfGameFunc *run_frame;
-  RunOneFrameOfGameFunc *run_frame_emulated;
   RunOneFrameOfGameFunc *draw_ppu_frame;
-  FixSnapshotForCompareFunc *fix_snapshot_for_compare;
 } RtlGameInfo;
-
-typedef struct Snapshot {
-  uint16 a, x, y, sp, dp, pc;
-  uint8 k, db, flags;
-
-  uint16_t vTimer;
-
-  uint8 ram[0x20000];
-  uint16 vram[0x8000];
-  uint8 sram[0x2000];
-
-  uint16 oam[0x120];
-  uint16 cgram[0x100];
-} Snapshot;
 
 extern const RtlGameInfo kSmwGameInfo;
 extern const RtlGameInfo kSmb1GameInfo;

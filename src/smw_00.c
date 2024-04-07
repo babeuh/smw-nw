@@ -337,10 +337,6 @@ static const uint8 kUpdateHDMAWindowBuffer_KeyholeHDMAData[] = {
 void SmwVectorReset() {
 //  xWriteReg(NMITIMEN, 0);
 //  xWriteReg(HDMAEN, 0);
-  RtlApuWrite(APUI00, 0);
-  RtlApuWrite(APUI01, 0);
-  RtlApuWrite(APUI02, 0);
-  RtlApuWrite(APUI03, 0);
   RtlPpuWrite(INIDISP, 0x80);
   *(uint16 *)reset_sprites_y_function_in_ram = 0xf0a9;
   uint16 v0 = 381;
@@ -352,11 +348,9 @@ void SmwVectorReset() {
     v0 -= 3;
   } while ((v0 & 0x8000) == 0);
   reset_sprites_y_function_in_ram[386] = 107;
-  HandleSPCUploads_UploadSPCEngine();
   misc_game_mode = 0;
   misc_intro_level_flag = 0;
   InitializeFirst8KBOfRAM();
-  HandleSPCUploads_UploadSamples();
   SetupHDMAWindowingEffects();
   RtlPpuWrite(OBSEL, 3);
   ++waiting_for_vblank;
@@ -374,54 +368,13 @@ void ResetSpritesFunc(int wh) {
     g_ram[0x201 + wh * 4] = 0xf0;
 }
 
-void HandleSPCUploads_UploadSPCEngine() {  // 0080e8
-  HandleSPCUploads_UploadDataToSPC(kSpcEngine);
-}
-
-void HandleSPCUploads_UploadDataToSPC(const uint8 *p) {  // 0080f7
-  if (g_use_my_apu_code)
-    RtlApuUpload(p);
-}
-
-void HandleSPCUploads_UploadSamples() {  // 0080fd
-  HandleSPCUploads_StrtSPCMscUpld(kSpcSamples);
-}
-
-void HandleSPCUploads_UploadOverworldMusicBank() {  // 00810e
-  HandleSPCUploads_StrtSPCMscUpld(kSpcOverworldMusicBank);
-}
-
-void HandleSPCUploads_StrtSPCMscUpld(const uint8 *p) {  // 00811d
-  HandleSPCUploads_UploadDataToSPC(p);
-  for (uint8 i = 3; (i & 0x80) == 0; --i) {
-    RtlApuWrite((SnesRegs)(i + APUI00), 0);
-    *(&io_sound_ch1 + i) = 0;
-    *(&unusedram_7e1dfd + i) = 0;
-  }
-}
-
-void HandleSPCUploads_008134() {  // 008134
-  if (flag_active_bonus_game || misc_intro_level_flag == 0xE9 ||
-      !(flag_show_player_start | (uint8)(counter_sublevels_entered | misc_intro_level_flag))) {
-    HandleSPCUploads_StrtSPCMscUpld(kSpcLevelMusicBank);
-  }
-}
-
-void HandleSPCUploads_UploadCreditsMusicBank() {  // 008159
-  HandleSPCUploads_StrtSPCMscUpld(kSpcCreditsMusicBank);
-}
-
 void SmwVectorNMI() {
   int trigger_line = -1;
   uint8 v0 = io_music_ch1;
-  if (io_music_ch1  || g_ram[kSmwRam_APUI02] == io_copy_of_music_ch1) {
-    RtlApuWrite(APUI02, v0);
+  if (io_music_ch1) {
     io_copy_of_music_ch1 = v0;
     io_music_ch1 = 0;
   }
-  RtlApuWrite(APUI00, io_sound_ch1);
-  RtlApuWrite(APUI01, io_sound_ch2);
-  RtlApuWrite(APUI03, io_sound_ch3);
   io_sound_ch1 = 0;
   io_sound_ch2 = 0;
   io_sound_ch3 = 0;
@@ -1143,7 +1096,6 @@ void GameMode19_Cutscene() {  // 009468
     UploadBigLayer3LettersToVRAM();
     graphics_stripe_image_to_upload = -46;
     LoadStripeImage();
-    HandleSPCUploads_UploadCreditsMusicBank();
     BufferCreditsBackgrounds();
     SetupHDMAWindowingEffects_EndHDMA();
     ++misc_level_tileset_setting;
@@ -1312,7 +1264,6 @@ void GameMode11_LoadSublevel_GameMode03Entry() {  // 0096ae
   for (int8 i = 7; i >= 0; --i)
     misc_currently_loaded_sprite_graphics_files[(uint8)i] = -1;
   if (!misc_intro_level_flag) {
-    HandleSPCUploads_UploadOverworldMusicBank();
     io_music_ch1 = 1;
   }
   GameMode11_LoadSublevel_0096CF(0, 0xEB);
@@ -1334,7 +1285,6 @@ void GameMode11_LoadSublevel_0096D5() {  // 0096d5
   LoadLevel();
   for (uint8 i = 7; (i & 0x80) == 0; --i)
     LOBYTE(get_PointU16(misc_layer1_pos, i)->x) = *((uint8 *)&mirror_current_layer1_xpos + i);
-  HandleSPCUploads_008134();
   InitializeLevelRAM();
   camera_last_screen_horiz = 32;
   GameMode11_LoadSublevel_00A796();
@@ -2156,7 +2106,6 @@ void GameMode0C_LoadOverworld() {  // 00a087
     return;
   }
   ClearLayer3Tilemap();
-  HandleSPCUploads_UploadOverworldMusicBank();
   SetStandardPPUSettings();
   misc_music_register_backup = 0;
   uint8 v0 = player_current_character;

@@ -732,7 +732,6 @@ uint32_t pc_hist[16], pc_hist_ctr;
 
 uint32_t pc_bp = 0;
 int bp_cnt = 0;
-extern bool g_debug_apu_cycles;
 
 void DumpCpuHistory() {
   for (int i = 0; i < 8; i++) {
